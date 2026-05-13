@@ -1,0 +1,191 @@
+[
+  {
+    "name": "check_compatibility",
+    "filename": "src/requests/__init__.py",
+    "source": "def check_compatibility(urllib3_version, chardet_version, charset_normalizer_version):\n    urllib3_version = urllib3_version.split(\".\")\n    assert urllib3_version != [\"dev\"]  # Verify urllib3 isn't installed from git.\n\n    # Sometimes, urllib3 only reports its version as 16.1.\n    if len(urllib3_version) == 2:\n        urllib3_version.append(\"0\")\n\n    # Check urllib3 for compatibility.\n    major, minor, patch = urllib3_version  # noqa: F811\n    major, minor, patch = int(major), int(minor), int(patch)\n    # urllib3 >= 1.21.1\n    assert major >= 1\n    if major == 1:\n        assert minor >= 21\n\n    # Check charset_normalizer for compatibility.\n    if chardet_version:\n        major, minor, patch = chardet_version.split(\".\")[:3]\n        major, minor, patch = int(major), int(minor), int(patch)\n        # chardet_version >= 3.0.2, < 8.0.0\n        assert (3, 0, 2) <= (major, minor, patch) < (8, 0, 0)\n    elif charset_normalizer_version:\n        major, minor, patch = charset_normalizer_version.split(\".\")[:3]\n        major, minor, patch = int(major), int(minor), int(patch)\n        # charset_normalizer >= 2.0.0 < 4.0.0\n        assert (2, 0, 0) <= (major, minor, patch) < (4, 0, 0)\n    else:\n        warnings.warn(\n            \"Unable to find acceptable character detection dependency \"\n            \"(chardet or charset_normalizer).\",\n            RequestsDependencyWarning,\n        )",
+    "lineno": 58,
+    "repo": "psf/requests"
+  },
+  {
+    "name": "to_native_string",
+    "filename": "src/requests/_internal_utils.py",
+    "source": "def to_native_string(string, encoding=\"ascii\"):\n    \"\"\"Given a string object, regardless of type, returns a representation of\n    that string in the native string type, encoding and decoding where\n    necessary. This assumes ASCII unless told otherwise.\n    \"\"\"\n    if isinstance(string, builtin_str):\n        out = string\n    else:\n        out = string.decode(encoding)\n\n    return out",
+    "lineno": 26,
+    "repo": "psf/requests"
+  },
+  {
+    "name": "unicode_is_ascii",
+    "filename": "src/requests/_internal_utils.py",
+    "source": "def unicode_is_ascii(u_string):\n    \"\"\"Determine if unicode string only contains ASCII characters.\n\n    :param str u_string: unicode string to check. Must be unicode\n        and not Python 2 `str`.\n    :rtype: bool\n    \"\"\"\n    assert isinstance(u_string, str)\n    try:\n        u_string.encode(\"ascii\")\n        return True\n    except UnicodeEncodeError:\n        return False",
+    "lineno": 39,
+    "repo": "psf/requests"
+  },
+  {
+    "name": "head",
+    "filename": "src/requests/api.py",
+    "source": "def head(url, **kwargs):\n    r\"\"\"Sends a HEAD request.\n\n    :param url: URL for the new :class:`Request` object.\n    :param \\*\\*kwargs: Optional arguments that ``request`` takes. If\n        `allow_redirects` is not provided, it will be set to `False` (as\n        opposed to the default :meth:`request` behavior).\n    :return: :class:`Response <Response>` object\n    :rtype: requests.Response\n    \"\"\"\n\n    kwargs.setdefault(\"allow_redirects\", False)\n    return request(\"head\", url, **kwargs)",
+    "lineno": 88,
+    "repo": "psf/requests"
+  },
+  {
+    "name": "extract_cookies_to_jar",
+    "filename": "src/requests/cookies.py",
+    "source": "def extract_cookies_to_jar(jar, request, response):\n    \"\"\"Extract the cookies from the response into a CookieJar.\n\n    :param jar: http.cookiejar.CookieJar (not necessarily a RequestsCookieJar)\n    :param request: our own requests.Request object\n    :param response: urllib3.HTTPResponse object\n    \"\"\"\n    if not (hasattr(response, \"_original_response\") and response._original_response):\n        return\n    # the _original_response field is the wrapped httplib.HTTPResponse object,\n    req = MockRequest(request)\n    # pull out the HTTPMessage with the headers and put it in the mock:\n    res = MockResponse(response._original_response.msg)\n    jar.extract_cookies(res, req)",
+    "lineno": 124,
+    "repo": "psf/requests"
+  },
+  {
+    "name": "get_cookie_header",
+    "filename": "src/requests/cookies.py",
+    "source": "def get_cookie_header(jar, request):\n    \"\"\"\n    Produce an appropriate Cookie header string to be sent with `request`, or None.\n\n    :rtype: str\n    \"\"\"\n    r = MockRequest(request)\n    jar.add_cookie_header(r)\n    return r.get_new_headers().get(\"Cookie\")",
+    "lineno": 140,
+    "repo": "psf/requests"
+  },
+  {
+    "name": "remove_cookie_by_name",
+    "filename": "src/requests/cookies.py",
+    "source": "def remove_cookie_by_name(cookiejar, name, domain=None, path=None):\n    \"\"\"Unsets a cookie by name, by default over all domains and paths.\n\n    Wraps CookieJar.clear(), is O(n).\n    \"\"\"\n    clearables = []\n    for cookie in cookiejar:\n        if cookie.name != name:\n            continue\n        if domain is not None and domain != cookie.domain:\n            continue\n        if path is not None and path != cookie.path:\n            continue\n        clearables.append((cookie.domain, cookie.path, cookie.name))\n\n    for domain, path, name in clearables:\n        cookiejar.clear(domain, path, name)",
+    "lineno": 151,
+    "repo": "psf/requests"
+  },
+  {
+    "name": "create_cookie",
+    "filename": "src/requests/cookies.py",
+    "source": "def create_cookie(name, value, **kwargs):\n    \"\"\"Make a cookie from underspecified parameters.\n\n    By default, the pair of `name` and `value` will be set for the domain ''\n    and sent on every request (this is sometimes called a \"supercookie\").\n    \"\"\"\n    result = {\n        \"version\": 0,\n        \"name\": name,\n        \"value\": value,\n        \"port\": None,\n        \"domain\": \"\",\n        \"path\": \"/\",\n        \"secure\": False,\n        \"expires\": None,\n        \"discard\": True,\n        \"comment\": None,\n        \"comment_url\": None,\n        \"rest\": {\"HttpOnly\": None},\n        \"rfc2109\": False,\n    }\n\n    badargs = set(kwargs) - set(result)\n    if badargs:\n        raise TypeError(\n            f\"create_cookie() got unexpected keyword arguments: {list(badargs)}\"\n        )\n\n    result.update(kwargs)\n    result[\"port_specified\"] = bool(result[\"port\"])\n    result[\"domain_specified\"] = bool(result[\"domain\"])\n    result[\"domain_initial_dot\"] = result[\"domain\"].startswith(\".\")\n    result[\"path_specified\"] = bool(result[\"path\"])\n\n    return cookielib.Cookie(**result)",
+    "lineno": 455,
+    "repo": "psf/requests"
+  },
+  {
+    "name": "morsel_to_cookie",
+    "filename": "src/requests/cookies.py",
+    "source": "def morsel_to_cookie(morsel):\n    \"\"\"Convert a Morsel object into a Cookie containing the one k/v pair.\"\"\"\n\n    expires = None\n    if morsel[\"max-age\"]:\n        try:\n            expires = int(time.time() + int(morsel[\"max-age\"]))\n        except ValueError:\n            raise TypeError(f\"max-age: {morsel['max-age']} must be integer\")\n    elif morsel[\"expires\"]:\n        time_template = \"%a, %d-%b-%Y %H:%M:%S GMT\"\n        expires = calendar.timegm(time.strptime(morsel[\"expires\"], time_template))\n    return create_cookie(\n        comment=morsel[\"comment\"],\n        comment_url=bool(morsel[\"comment\"]),\n        discard=False,\n        domain=morsel[\"domain\"],\n        expires=expires,\n        name=morsel.key,\n        path=morsel[\"path\"],\n        port=None,\n        rest={\"HttpOnly\": morsel[\"httponly\"]},\n        rfc2109=False,\n        secure=bool(morsel[\"secure\"]),\n        value=morsel.value,\n        version=morsel[\"version\"] or 0,\n    )",
+    "lineno": 492,
+    "repo": "psf/requests"
+  },
+  {
+    "name": "cookiejar_from_dict",
+    "filename": "src/requests/cookies.py",
+    "source": "def cookiejar_from_dict(cookie_dict, cookiejar=None, overwrite=True):\n    \"\"\"Returns a CookieJar from a key/value dictionary.\n\n    :param cookie_dict: Dict of key/values to insert into CookieJar.\n    :param cookiejar: (optional) A cookiejar to add the cookies to.\n    :param overwrite: (optional) If False, will not replace cookies\n        already in the jar with new ones.\n    :rtype: CookieJar\n    \"\"\"\n    if cookiejar is None:\n        cookiejar = RequestsCookieJar()\n\n    if cookie_dict is not None:\n        names_from_jar = [cookie.name for cookie in cookiejar]\n        for name in cookie_dict:\n            if overwrite or (name not in names_from_jar):\n                cookiejar.set_cookie(create_cookie(name, cookie_dict[name]))\n\n    return cookiejar",
+    "lineno": 521,
+    "repo": "psf/requests"
+  },
+  {
+    "name": "read_config",
+    "filename": "examples/aliases/aliases.py",
+    "source": "def read_config(ctx, param, value):\n    \"\"\"Callback that is used whenever --config is passed.  We use this to\n    always load the correct config.  This means that the config is loaded\n    even if the group itself never executes so our aliases stay always\n    available.\n    \"\"\"\n    cfg = ctx.ensure_object(Config)\n    if value is None:\n        value = os.path.join(os.path.dirname(__file__), \"aliases.ini\")\n    cfg.read_config(value)\n    return value",
+    "lineno": 76,
+    "repo": "pallets/click"
+  },
+  {
+    "name": "alias",
+    "filename": "examples/aliases/aliases.py",
+    "source": "def alias(config, alias_, cmd, config_file):\n    \"\"\"Adds an alias to the specified configuration file.\"\"\"\n    config.add_alias(alias_, cmd)\n    config.write_config(config_file)\n    click.echo(f\"Added '{alias_}' as alias for '{cmd}'\")",
+    "lineno": 139,
+    "repo": "pallets/click"
+  },
+  {
+    "name": "cli",
+    "filename": "examples/colors/colors.py",
+    "source": "def cli():\n    \"\"\"This script prints some colors. It will also automatically remove\n    all ANSI styles if data is piped into a file.\n\n    Give it a try!\n    \"\"\"\n    for color in all_colors:\n        click.echo(click.style(f\"I am colored {color}\", fg=color))\n    for color in all_colors:\n        click.echo(click.style(f\"I am colored {color} and bold\", fg=color, bold=True))\n    for color in all_colors:\n        click.echo(click.style(f\"I am reverse colored {color}\", fg=color, reverse=True))\n\n    click.echo(click.style(\"I am blinking\", blink=True))\n    click.echo(click.style(\"I am underlined\", underline=True))",
+    "lineno": 25,
+    "repo": "pallets/click"
+  },
+  {
+    "name": "list_users",
+    "filename": "examples/completion/completion.py",
+    "source": "def list_users(ctx, param, incomplete):\n    # You can generate completions with help strings by returning a list\n    # of CompletionItem. You can match on whatever you want, including\n    # the help.\n    items = [(\"bob\", \"butcher\"), (\"alice\", \"baker\"), (\"jerry\", \"candlestick maker\")]\n    out = []\n\n    for value, help in items:\n        if incomplete in value or incomplete in help:\n            out.append(CompletionItem(value, help=help))\n\n    return out",
+    "lineno": 36,
+    "repo": "pallets/click"
+  },
+  {
+    "name": "cli",
+    "filename": "examples/complex/complex/cli.py",
+    "source": "def cli(ctx, verbose, home):\n    \"\"\"A complex command line interface.\"\"\"\n    ctx.verbose = verbose\n    if home is not None:\n        ctx.home = home",
+    "lineno": 56,
+    "repo": "pallets/click"
+  },
+  {
+    "name": "cli",
+    "filename": "examples/complex/complex/commands/cmd_init.py",
+    "source": "def cli(ctx, path):\n    \"\"\"Initializes a repository.\"\"\"\n    if path is None:\n        path = ctx.home\n    ctx.log(f\"Initialized the repository in {click.format_filename(path)}\")",
+    "lineno": 9,
+    "repo": "pallets/click"
+  },
+  {
+    "name": "cli",
+    "filename": "examples/complex/complex/commands/cmd_status.py",
+    "source": "def cli(ctx):\n    \"\"\"Shows file changes in the current working directory.\"\"\"\n    ctx.log(\"Changed files: none\")\n    ctx.vlog(\"bla bla bla, debug info\")",
+    "lineno": 8,
+    "repo": "pallets/click"
+  },
+  {
+    "name": "process_commands",
+    "filename": "examples/imagepipe/imagepipe.py",
+    "source": "def process_commands(processors):\n    \"\"\"This result callback is invoked with an iterable of all the chained\n    subcommands.  As in this example each subcommand returns a function\n    we can chain them together to feed one into the other, similar to how\n    a pipe on unix works.\n    \"\"\"\n    # Start with an empty iterable.\n    stream = ()\n\n    # Pipe it through all stream processors.\n    for processor in processors:\n        stream = processor(stream)\n\n    # Evaluate the stream and throw away the items.\n    for _ in stream:\n        pass",
+    "lineno": 24,
+    "repo": "pallets/click"
+  },
+  {
+    "name": "processor",
+    "filename": "examples/imagepipe/imagepipe.py",
+    "source": "def processor(f):\n    \"\"\"Helper decorator to rewrite a function so that it returns another\n    function from it.\n    \"\"\"\n\n    def new_func(*args, **kwargs):\n        def processor(stream):\n            return f(stream, *args, **kwargs)\n\n        return processor\n\n    return update_wrapper(new_func, f)",
+    "lineno": 42,
+    "repo": "pallets/click"
+  },
+  {
+    "name": "generator",
+    "filename": "examples/imagepipe/imagepipe.py",
+    "source": "def generator(f):\n    \"\"\"Similar to the :func:`processor` but passes through old values\n    unchanged and does not pass through the values as parameter.\n    \"\"\"\n\n    @processor\n    def new_func(stream, *args, **kwargs):\n        yield from stream\n        yield from f(*args, **kwargs)\n\n    return update_wrapper(new_func, f)",
+    "lineno": 56,
+    "repo": "pallets/click"
+  },
+  {
+    "name": "fib",
+    "filename": "examples/fib.py",
+    "source": "def fib(n):\n    \"\"\" Imperative definition of Fibonacci numbers \"\"\"\n    a, b = 0, 1\n    for i in range(n):\n        a, b = b, a + b\n    return a",
+    "lineno": 6,
+    "repo": "pytoolz/toolz"
+  },
+  {
+    "name": "get_exclude_keywords",
+    "filename": "toolz/_signatures.py",
+    "source": "def get_exclude_keywords(num_pos_only, sigspec):\n    \"\"\" Return the names of position-only arguments if func has **kwargs\"\"\"\n    if num_pos_only == 0:\n        return ()\n    has_kwargs = any(x.kind == x.VAR_KEYWORD\n                     for x in sigspec.parameters.values())\n    if not has_kwargs:\n        return ()\n    pos_args = list(sigspec.parameters.values())[:num_pos_only]\n    return tuple(x.name for x in pos_args)",
+    "lineno": 605,
+    "repo": "pytoolz/toolz"
+  },
+  {
+    "name": "expand_sig",
+    "filename": "toolz/_signatures.py",
+    "source": "def expand_sig(sig):\n    \"\"\" Convert the signature spec in ``module_info`` to add to ``signatures``\n\n    The input signature spec is one of:\n        - ``lambda_func``\n        - ``(num_position_args, lambda_func)``\n        - ``(num_position_args, lambda_func, keyword_only_args)``\n\n    The output signature spec is:\n        ``(num_position_args, lambda_func, keyword_exclude, sigspec)``\n\n    where ``keyword_exclude`` includes keyword only arguments and, if variadic\n    keywords is present, the names of position-only argument.  The latter is\n    included to support builtins such as ``partial(func, *args, **kwargs)``,\n    which allows ``func=`` to be used as a keyword even though it's the name\n    of a positional argument.\n    \"\"\"\n    if isinstance(sig, tuple):\n        if len(sig) == 3:\n            num_pos_only, func, keyword_only = sig\n            assert isinstance(sig[-1], tuple)\n        else:\n            num_pos_only, func = sig\n            keyword_only = ()\n        sigspec = signature_or_spec(func)\n    else:\n        func = sig\n        sigspec = signature_or_spec(func)\n        num_pos_only = num_pos_args(sigspec)\n        keyword_only = ()\n    keyword_exclude = get_exclude_keywords(num_pos_only, sigspec)\n    return num_pos_only, func, keyword_only + keyword_exclude, sigspec",
+    "lineno": 624,
+    "repo": "pytoolz/toolz"
+  },
+  {
+    "name": "check_valid",
+    "filename": "toolz/_signatures.py",
+    "source": "def check_valid(sig, args, kwargs):\n    \"\"\" Like ``is_valid_args`` for the given signature spec\"\"\"\n    num_pos_only, func, keyword_exclude, sigspec = sig\n    if len(args) < num_pos_only:\n        return False\n    if keyword_exclude:\n        kwargs = dict(kwargs)\n        for item in keyword_exclude:\n            kwargs.pop(item, None)\n    try:\n        func(*args, **kwargs)\n        return True\n    except TypeError:\n        return False",
+    "lineno": 671,
+    "repo": "pytoolz/toolz"
+  },
+  {
+    "name": "check_partial",
+    "filename": "toolz/_signatures.py",
+    "source": "def check_partial(sig, args, kwargs):\n    \"\"\" Like ``is_partial_args`` for the given signature spec\"\"\"\n    num_pos_only, func, keyword_exclude, sigspec = sig\n    if len(args) < num_pos_only:\n        pad = (None,) * (num_pos_only - len(args))\n        args = args + pad\n    if keyword_exclude:\n        kwargs = dict(kwargs)\n        for item in keyword_exclude:\n            kwargs.pop(item, None)\n    return is_partial_args(func, args, kwargs, sigspec)",
+    "lineno": 695,
+    "repo": "pytoolz/toolz"
+  },
+  {
+    "name": "check_arity",
+    "filename": "toolz/_signatures.py",
+    "source": "def check_arity(n, sig):\n    num_pos_only, func, keyword_exclude, sigspec = sig\n    if keyword_exclude or num_pos_only > n:\n        return False\n    return is_arity(n, func, sigspec)",
+    "lineno": 716,
+    "repo": "pytoolz/toolz"
+  },
+  {
+    "name": "check_keywords",
+    "filename": "toolz/_signatures.py",
+    "source": "def check_keywords(sig):\n    num_pos_only, func, keyword_exclude, sigspec = sig\n    if keyword_exclude:\n        return True\n    return has_keywords(func, sigspec)",
+    "lineno": 752,
+    "repo": "pytoolz/toolz"
+  }
+]
