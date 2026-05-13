@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🧪 BDM Tabanlı Otomatik Test Kodu Üretimi ve Değerlendirme
+# 🧪 TEST CASE ÜRETİMİ: LLM TABANLI OTOMATİK TEST KODU OLUŞTURMA VE DEĞERLENDİRME
 
 ### LLM-Based Automated Test Code Generation and Evaluation
 
